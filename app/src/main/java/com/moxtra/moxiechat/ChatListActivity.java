@@ -1,5 +1,6 @@
 package com.moxtra.moxiechat;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -10,6 +11,8 @@ import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -24,6 +27,7 @@ import com.moxtra.moxiechat.model.MoxieUser;
 import com.moxtra.sdk.ChatClient;
 import com.moxtra.sdk.chat.controller.ChatController;
 import com.moxtra.sdk.chat.model.Chat;
+import com.moxtra.sdk.chat.model.ChatMember;
 import com.moxtra.sdk.chat.repo.ChatRepo;
 import com.moxtra.sdk.client.ChatClientDelegate;
 import com.moxtra.sdk.common.ApiCallback;
@@ -68,6 +72,28 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
 
     private static boolean isEnded(Meet meet) {
         return !meet.isInProgress() && !(meet.getScheduleStartTime() > 0 && System.currentTimeMillis() < meet.getScheduleEndTime());
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.findItem(R.id.action_mentions).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menu.findItem(R.id.action_todos).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_mentions: {
+                startActivity(new Intent(this, MentionsActivity.class));
+                break;
+            }
+            case R.id.action_todos: {
+                startActivity(new Intent(this, MyTodosActivity.class));
+                break;
+            }
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -315,10 +341,20 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
                 theHolder.btnMeet.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        ArrayList<User> userList = new ArrayList<>();
-                        userList.addAll(chat.getMembers());
-                        String topic = mMyProfile.getFirstName() + "'s " + "meet";
-                        MeetActivity.startMeet(ChatListActivity.this, topic, userList);
+                        final ArrayList<User> userList = new ArrayList<>();
+                        chat.getChatDetail().getMembers(new ApiCallback<List<ChatMember>>() {
+                            @Override
+                            public void onCompleted(List<ChatMember> chatMembers) {
+                                userList.addAll(chatMembers);
+                                String topic = mMyProfile.getFirstName() + "'s " + "meet";
+                                MeetActivity.startMeet(ChatListActivity.this, topic, userList);
+                            }
+
+                            @Override
+                            public void onError(int i, String s) {
+
+                            }
+                        });
                     }
                 });
                 if (mMyProfile.getUniqueId().equals(chat.getOwner().getUniqueId())) {

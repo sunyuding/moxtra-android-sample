@@ -23,6 +23,7 @@ public class ChatActivity extends BaseActivity {
     private static final String KEY_ACTION = "action";
     private static final String KEY_TOPIC = "topic";
     private static final String KEY_UNIQUE_ID_LIST = "uniqueIdList";
+    private static final String KEY_FEED_ID = "feedId";
 
     private static final String ACTION_SHOW = "show";
     private static final String ACTION_START = "start";
@@ -40,6 +41,14 @@ public class ChatActivity extends BaseActivity {
         Intent intent = new Intent(ctx, ChatActivity.class);
         intent.putExtra(KEY_ACTION, ACTION_SHOW);
         intent.putExtra(KEY_CHAT, chat);
+        ctx.startActivity(intent);
+    }
+
+    public static void showFeed(Context ctx, Chat chat, String feedId) {
+        Intent intent = new Intent(ctx, ChatActivity.class);
+        intent.putExtra(KEY_ACTION, ACTION_SHOW);
+        intent.putExtra(KEY_CHAT, chat);
+        intent.putExtra(KEY_FEED_ID, feedId);
         ctx.startActivity(intent);
     }
 
@@ -90,7 +99,7 @@ public class ChatActivity extends BaseActivity {
             public void onCompleted(Chat chat) {
                 Log.i(TAG, "Create group chat successfully.");
                 mChat = chat;
-                mChat.inviteMembers(orgId, uniqueIdList, new ApiCallback<Void>() {
+                mChat.getChatDetail().inviteMembers(orgId, uniqueIdList, new ApiCallback<Void>() {
                     @Override
                     public void onCompleted(Void result) {
                         Log.i(TAG, "Invite members successfully.");
@@ -101,7 +110,7 @@ public class ChatActivity extends BaseActivity {
                         Log.e(TAG, "Failed to invite members, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
                     }
                 });
-                showChatFragment();
+                showChatFragment(null);
             }
 
             @Override
@@ -119,7 +128,7 @@ public class ChatActivity extends BaseActivity {
             finishInMainThread();
             return;
         }
-        showChatFragment();
+        showChatFragment(intent.getStringExtra(KEY_FEED_ID));
     }
 
     private void finishInMainThread() {
@@ -131,7 +140,7 @@ public class ChatActivity extends BaseActivity {
         });
     }
 
-    private void showChatFragment() {
+    private void showChatFragment(final String feedId) {
         mChatController = mChatClientDelegate.createChatController(mChat);
         mHandler.post(new Runnable() {
             @Override
@@ -140,6 +149,9 @@ public class ChatActivity extends BaseActivity {
                 if (fragment == null) {
                     fragment = mChatController.createChatFragment();
                     getSupportFragmentManager().beginTransaction().add(R.id.chat_frame, fragment).commit();
+                }
+                if (feedId != null) {
+                    mChatController.scrollToFeed(feedId);
                 }
                 setLoading(false);
             }

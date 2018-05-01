@@ -48,10 +48,10 @@
             </intent-filter>
         </service>
 
-        <activity android:name=".ChatActivity">
-        </activity>
-        <activity android:name=".MeetActivity">
-        </activity>
+        <activity android:name=".ChatActivity" />
+        <activity android:name=".MeetActivity" />
+        <activity android:name=".MentionsActivity" />
+        <activity android:name=".MyTodosActivity" android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
 
         <service android:name=".MoxtraNotificationService"/>
 
