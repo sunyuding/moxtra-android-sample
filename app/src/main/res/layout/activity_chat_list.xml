@@ -17,7 +17,8 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@drawable/ic_fa_plus"
+        android:onClick="createBinder"
         fab:fab_colorNormal="@color/blue_500"
         fab:fab_colorPressed="@color/blue_700"
-        fab:fab_colorRipple="@color/green_A200"/>
+        fab:fab_colorRipple="@color/green_A200" />
 </merge>

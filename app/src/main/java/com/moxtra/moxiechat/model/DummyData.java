@@ -9,6 +9,7 @@ public class DummyData {
     public static final List<String> UNIQUE_IDS = new ArrayList<>();
 
     static {
+        USERS.add(new MoxieUser("joseph@example.com", "Joseph", "Sun", "A01.png"));
         USERS.add(new MoxieUser("amy@example.com", "Amy", "Tate", "FA01.png"));
         USERS.add(new MoxieUser("bob@example.com", "Bob", "Turner", "A01.png"));
         USERS.add(new MoxieUser("ted@example.com", "Ted", "Packman", "A02.png"));

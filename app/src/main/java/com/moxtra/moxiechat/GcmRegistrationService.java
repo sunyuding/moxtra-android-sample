@@ -62,6 +62,9 @@ public class GcmRegistrationService extends IntentService {
             nm.useBuiltInPushNotification(MoxtraNotificationService.class.getName());
             Log.d(TAG, "use long connection notification");
         } else {
+            // On successful user login and registration of the device, get the register id (regId) from the GCM server.
+            // Use the regId in the Setup User call as shown in the code snippet below:
+            // chatClientDelegate.getNotificationManager().setNotificationDeviceToken(regId);
             nm.setNotificationDeviceToken(token);
             Log.d(TAG, "use GCM notification");
         }

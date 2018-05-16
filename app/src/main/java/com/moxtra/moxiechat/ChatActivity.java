@@ -94,6 +94,7 @@ public class ChatActivity extends BaseActivity {
         final List<String> uniqueIdList = intent.getStringArrayListExtra(KEY_UNIQUE_ID_LIST);
         final String orgId = null;
         mChatRepo = mChatClientDelegate.createChatRepo();
+
         mChatRepo.createGroupChat(topic, new ApiCallback<Chat>() {
             @Override
             public void onCompleted(Chat chat) {
@@ -107,7 +108,8 @@ public class ChatActivity extends BaseActivity {
 
                     @Override
                     public void onError(int errorCode, String errorMsg) {
-                        Log.e(TAG, "Failed to invite members, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
+                        Log.e(TAG,
+                                "Failed to invite members, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
                     }
                 });
                 showChatFragment(null);
@@ -115,7 +117,8 @@ public class ChatActivity extends BaseActivity {
 
             @Override
             public void onError(int errorCode, String errorMsg) {
-                Log.e(TAG, "Failed to create group chat, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
+                Log.e(TAG,
+                        "Failed to create group chat, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
                 finishInMainThread();
             }
         });
@@ -141,15 +144,26 @@ public class ChatActivity extends BaseActivity {
     }
 
     private void showChatFragment(final String feedId) {
+        // To open an existing chat from the chat list UI by calling the following API:
         mChatController = mChatClientDelegate.createChatController(mChat);
         mHandler.post(new Runnable() {
             @Override
             public void run() {
+                // getSupportFragmentManager() return the FragmentManager
+                // for interacting with fragments associated with this activity.
+                // findFragmentById(int id) finds a fragment that was identified by the given id
+                // either when inflated from XML or as the container ID when added in a transaction.
                 Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.chat_frame);
                 if (fragment == null) {
+                    // createChatFragment() Open the chat.
+                    // The chat must be opened before display the Chat UI.
                     fragment = mChatController.createChatFragment();
+                    // beginTransaction() start a series of edit operations on the Fragments associated with this FragmentManager.
+                    // add(int containerViewId, Fragment fragment)
+                    // commit() schedules a commit of this transaction
                     getSupportFragmentManager().beginTransaction().add(R.id.chat_frame, fragment).commit();
                 }
+
                 if (feedId != null) {
                     mChatController.scrollToFeed(feedId);
                 }

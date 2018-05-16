@@ -43,9 +43,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class ChatListActivity extends BaseActivity implements View.OnClickListener {
+public class ChatListActivity extends BaseActivity {
 
-    private static final String TAG = "DEMO_ChatList";
+    private static final String LOG_TAG = ChatListActivity.class.getSimpleName();
 
     private FloatingActionButton mFloatingActionButton;
     private RecyclerView mRecyclerView;
@@ -53,20 +53,20 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
     private final ApiCallback<List<Meet>> mMeetListApiCallback = new ApiCallback<List<Meet>>() {
         @Override
         public void onCompleted(List<Meet> meets) {
-            Log.d(TAG, "FetchMeets: onCompleted");
+            Log.d(LOG_TAG, "FetchMeets: onCompleted");
             mAdapter.updateMeets(meets);
         }
 
         @Override
         public void onError(int errorCode, String errorMsg) {
-            Log.d(TAG, "FetchMeets: onError");
+            Log.d(LOG_TAG, "FetchMeets: onError");
         }
     };
     private RecyclerView.LayoutManager mLayoutManager;
     private List<MoxieUser> mMoxieUserList;
     private MyProfile mMyProfile;
     private ChatClientDelegate mChatClientDelegate;
-    private ChatRepo mChatRepo;
+    private ChatRepo mChatRepo;//Chat repo that provides chat list operations.
     private MeetRepo mMeetRepo;
     private ChatController mChatController;
 
@@ -100,10 +100,10 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_list);
-        Log.d(TAG, "onCreate!");
+        Log.d(LOG_TAG, "onCreate!");
 
         mFloatingActionButton = (FloatingActionButton) findViewById(R.id.fab);
-        mFloatingActionButton.setOnClickListener(this);
+//        mFloatingActionButton.setOnClickListener(this);
 
         mRecyclerView = (RecyclerView) findViewById(R.id.rv_chat_list);
         mRecyclerView.setHasFixedSize(true);
@@ -117,29 +117,41 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
         mMyProfile = ChatClient.getMyProfile();
         mChatClientDelegate = ChatClient.getClientDelegate();
         if (mChatClientDelegate == null) {
-            Log.e(TAG, "Unlinked, ChatClient is null.");
+            Log.e(LOG_TAG, "Unlinked, ChatClient is null.");
             finish();
             return;
         }
+        // Build the chat list using the ChatRepo API.
+        // Get an instance of the ChatRepo
         mChatRepo = mChatClientDelegate.createChatRepo();
         mMeetRepo = mChatClientDelegate.createMeetRepo();
 
+        /**
+         * When a user opens the chat list UI,
+         * you can call the following API to get all the chats:
+         * List chatList = mChatRepo.getList();
+         *
+         * If not support, will throw UnsupportedOperationException.
+         *
+         * After getting a list of all chat sessions,
+         * you have to listen for changes so the UI can be updated automatically.
+         */
         mChatRepo.setOnChangedListener(new BaseRepo.OnRepoChangedListener<Chat>() {
             @Override
             public void onCreated(List<Chat> items) {
-                Log.d(TAG, "Chat: onCreated");
+                Log.d(LOG_TAG, "Chat: onCreated");
                 mAdapter.updateChats(mChatRepo.getList());
             }
 
             @Override
             public void onUpdated(List<Chat> items) {
-                Log.d(TAG, "Chat: onUpdated");
+                Log.d(LOG_TAG, "Chat: onUpdated");
                 mAdapter.updateChats(mChatRepo.getList());
             }
 
             @Override
             public void onDeleted(List<Chat> items) {
-                Log.d(TAG, "Chat: onDeleted");
+                Log.d(LOG_TAG, "Chat: onDeleted");
                 mAdapter.updateChats(mChatRepo.getList());
             }
         });
@@ -147,19 +159,19 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
         mMeetRepo.setOnChangedListener(new BaseRepo.OnRepoChangedListener<Meet>() {
             @Override
             public void onCreated(List<Meet> items) {
-                Log.d(TAG, "Meet: onCreated");
+                Log.d(LOG_TAG, "Meet: onCreated");
                 mMeetRepo.fetchMeets(mMeetListApiCallback);
             }
 
             @Override
             public void onUpdated(List<Meet> items) {
-                Log.d(TAG, "Meet: onUpdated");
+                Log.d(LOG_TAG, "Meet: onUpdated");
                 mMeetRepo.fetchMeets(mMeetListApiCallback);
             }
 
             @Override
             public void onDeleted(List<Meet> items) {
-                Log.d(TAG, "Meet: onDeleted");
+                Log.d(LOG_TAG, "Meet: onDeleted");
                 mMeetRepo.fetchMeets(mMeetListApiCallback);
             }
         });
@@ -187,24 +199,25 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
         }
     }
 
-    @Override
-    public void onClick(View v) {
-        if (v.getId() == R.id.fab) {
-            new MaterialDialog.Builder(this)
-                    .title(R.string.selectUserTitle)
-                    .items(getUserList())
-                    .itemsCallback(new MaterialDialog.ListCallback() {
-                        @Override
-                        public void onSelection(MaterialDialog materialDialog, View view, int i, CharSequence charSequence) {
-                            ArrayList<String> uniqueIdList = new ArrayList<>();
-                            uniqueIdList.add(mMoxieUserList.get(i).uniqueId);
-                            String topic = mMyProfile.getFirstName() + "'s chat";
-                            ChatActivity.startGroupChat(ChatListActivity.this, topic, uniqueIdList);
-                        }
-                    })
-                    .show();
-        }
-    }
+//    @Override
+//    public void onClick(View v) {
+//        if (v.getId() == R.id.fab) {
+//            // List Dialogs
+//            new MaterialDialog.Builder(this)
+//                    .title(R.string.selectUserTitle) // R.string.title
+//                    .items(getUserList()) // R.array.items
+//                    .itemsCallback(new MaterialDialog.ListCallback() {
+//                        @Override
+//                        public void onSelection(MaterialDialog materialDialog, View view, int i, CharSequence charSequence) {
+//                            ArrayList<String> uniqueIdList = new ArrayList<>();
+//                            uniqueIdList.add(mMoxieUserList.get(i).uniqueId);
+//                            String topic = mMyProfile.getFirstName() + "'s chat";
+//                            ChatActivity.startGroupChat(ChatListActivity.this, topic, uniqueIdList);
+//                        }
+//                    })
+//                    .show();
+//        }
+//    }
 
     private List<String> getUserList() {
         mMoxieUserList = DummyData.getUserListForSelect(DummyData.findByUniqueId(mMyProfile.getUniqueId()));
@@ -213,6 +226,24 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
             users.add(user.firstName + " " + user.lastName);
         }
         return users;
+    }
+
+    public void createBinder(View view) {
+        // https://github.com/afollestad/material-dialogs
+        // List Dialogs
+        new MaterialDialog.Builder(this)
+                .title(R.string.selectUserTitle) // R.string.title
+                .items(getUserList()) // R.array.items
+                .itemsCallback(new MaterialDialog.ListCallback() {
+                    @Override
+                    public void onSelection(MaterialDialog materialDialog, View view, int i, CharSequence charSequence) {
+                        ArrayList<String> uniqueIdList = new ArrayList<>();
+                        uniqueIdList.add(mMoxieUserList.get(i).uniqueId);
+                        String topic = mMyProfile.getFirstName() + "'s chat";
+                        ChatActivity.startGroupChat(ChatListActivity.this, topic, uniqueIdList);
+                    }
+                })
+                .show();
     }
 
     private class ChatListAdapter extends RecyclerView.Adapter {
@@ -224,20 +255,6 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
 
         ChatListAdapter() {
             super();
-        }
-
-        private void leaveOrDeleteChat(Chat chat) {
-            mChatRepo.deleteOrLeaveChat(chat, new ApiCallback<Void>() {
-                @Override
-                public void onCompleted(Void result) {
-                    Log.i(TAG, "Leave or delete chat successfully.");
-                }
-
-                @Override
-                public void onError(int errorCode, String errorMsg) {
-                    Log.e(TAG, "Failed to leave or delete chat, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
-                }
-            });
         }
 
         private void sortData() {
@@ -315,11 +332,12 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
                 theHolder.btnDelete.setVisibility(View.GONE);
                 theHolder.tvBadge.setVisibility(View.INVISIBLE);
             } else {
+
                 final Chat chat = session.chat;
                 chat.fetchCover(new ApiCallback<String>() {
                     @Override
                     public void onCompleted(final String avatarPath) {
-                        Log.d(TAG, " Chat cover=" + avatarPath);
+                        Log.d(LOG_TAG, " Chat cover=" + avatarPath);
                         if (!TextUtils.isEmpty(avatarPath)) {
                             theHolder.ivCover.setImageURI(Uri.fromFile(new File(avatarPath)));
                         } else {
@@ -357,6 +375,7 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
                         });
                     }
                 });
+                // check the ownership
                 if (mMyProfile.getUniqueId().equals(chat.getOwner().getUniqueId())) {
                     theHolder.btnDelete.setText(R.string.Delete);
                 } else {
@@ -376,7 +395,24 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
                                 .onPositive(new MaterialDialog.SingleButtonCallback() {
                                     @Override
                                     public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
-                                        leaveOrDeleteChat(chat);
+                                        // Delete or leave chat.
+                                        //
+                                        // If the user is the owner, then the chat will be deleted when call the API.
+                                        //
+                                        // If the user is not the owner, then the user will leave the chat when call the API
+                                        mChatRepo.deleteOrLeaveChat(chat, new ApiCallback<Void>() {
+                                            @Override
+                                            public void onCompleted(Void result) {
+                                                Log.i(LOG_TAG,
+                                                        "Leave or delete chat successfully.");
+                                            }
+
+                                            @Override
+                                            public void onError(int errorCode, String errorMsg) {
+                                                Log.e(LOG_TAG,
+                                                        "Failed to leave or delete chat, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
+                                            }
+                                        });
                                         dialog.dismiss();
                                     }
                                 })
@@ -389,6 +425,7 @@ public class ChatListActivity extends BaseActivity implements View.OnClickListen
                                 .show();
                     }
                 });
+                // getUnreadFeedCount() get the count of unread feed.
                 if (chat.getUnreadFeedCount() > 0) {
                     theHolder.tvBadge.setText(String.valueOf(chat.getUnreadFeedCount()));
                     theHolder.tvBadge.setVisibility(View.VISIBLE);

@@ -1,19 +1,14 @@
 package com.moxtra.moxiechat;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.Button;
 import android.widget.Toast;
 
 import com.afollestad.materialdialogs.MaterialDialog;
@@ -23,6 +18,7 @@ import com.moxtra.moxiechat.model.MoxieUser;
 import com.moxtra.sdk.ChatClient;
 import com.moxtra.sdk.client.ChatClientDelegate;
 import com.moxtra.sdk.common.ApiCallback;
+import com.moxtra.sdk.common.model.MyProfile;
 
 import java.util.List;
 
@@ -30,55 +26,49 @@ import java.util.List;
  * A login screen that offers login via unique ID.
  */
 public class LoginActivity extends Activity {
-    private static final String TAG = "DEMO_LoginActivity";
+    private static final String LOG_TAG = LoginActivity.class.getSimpleName();
 
     /**
      * Here provides a sample to link with Moxtra account with accessToken via Intent.
      */
-    private static final String KEY_TOKEN = "token";
+    private static final String KEY_TOKEN = "token";//the access token which usually generated on the server side.
 
     private static final String CLIENT_ID = "irej6RlLOBo";
     private static final String CLIENT_SECRET = "uiwE8ZzymRs";
     private static final String ORG_ID = null;
-    private static final String BASE_DOMAIN = "sandbox.moxtra.com";
-    private final Handler mHandler = new Handler();
+    private static final String BASE_DOMAIN = "sandbox.moxtra.com";//sandbox.moxtra.com for sandbox.
+
     // UI references.
     private Context mContext;
     private AutoCompleteTextView mUniqueIdView;
-    private View mProgressView;
-    private View mLoginFormView;
 
+    private MyProfile myProfile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        if (ChatClient.getMyProfile() != null) {
+        ChatClient.initialize(this.getApplication());
+
+        myProfile = ChatClient.getMyProfile();
+        if (myProfile != null) {
             // Already linked to Moxtra account
             startChatListActivity();
             return;
         }
 
+        //Return the context of the single, global Application object of the current process.
         mContext = getApplicationContext();
-        mProgressView = findViewById(R.id.login_progress);
+        //Auto fill sign in for convenience
         mUniqueIdView = (AutoCompleteTextView) findViewById(R.id.unique_id);
         mUniqueIdView.setText(DummyData.UNIQUE_IDS.get(0));
         addUniqueIdsToAutoComplete(DummyData.UNIQUE_IDS);
 
-        Button mUniqueIdSignInButton = (Button) findViewById(R.id.unique_id_sign_in_button);
-        mUniqueIdSignInButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                attemptLogin();
-            }
-        });
-        mLoginFormView = findViewById(R.id.login_form);
-
-        Intent intent = getIntent();
+        Intent intent = getIntent();//Return the intent that started this activity.
         if (intent != null) {
             String token = intent.getStringExtra(KEY_TOKEN);
-            Log.d(TAG, "Token = " + token);
+            Log.d(LOG_TAG, "Token = " + token);
             if (token != null) {
                 linkWithAccessToken(token);
                 return;
@@ -94,41 +84,57 @@ public class LoginActivity extends Activity {
     }
 
     private void startChatListActivity() {
-        Log.i(TAG, "startChatListActivity");
-        startActivity(new Intent(this, ChatListActivity.class));
-        finish();
+        Log.i(LOG_TAG, "startChatListActivity");
+        startActivity(new Intent(this, ChatListActivity.class));//launch an Activity
+        finish();// Call this when your activity is done and should be closed.
     }
 
     private void linkWithUniqueID(final String uniqueId) {
-        Log.d(TAG, "Start to linkWithUniqueID...");
-        showProgress(true);
+        Log.d(LOG_TAG, "Start to linkWithUniqueID...");
+
         ChatClient.linkWithUniqueId(uniqueId, CLIENT_ID, CLIENT_SECRET, ORG_ID, BASE_DOMAIN,
                 new ApiCallback<ChatClientDelegate>() {
                     @Override
                     public void onCompleted(ChatClientDelegate ccd) {
-                        Log.i(TAG, "Linked to Moxtra account successfully.");
-                        PreferenceUtil.saveUser(mContext, uniqueId);
-                        Intent intent = new Intent(mContext, GcmRegistrationService.class);
-                        startService(intent);
-                        startChatListActivity();
+                        Log.i(LOG_TAG, "Linked to Moxtra account successfully.");
+
+                        myProfile = ChatClient.getMyProfile();
+                        MoxieUser user = DummyData.findByUniqueId(uniqueId);
+
+                        myProfile.updateMyProfile(user.firstName, user.lastName, new ApiCallback<Void>() {
+                            @Override
+                            public void onCompleted(Void aVoid) {
+                                Log.d(LOG_TAG, "updateMyProfile");
+                                PreferenceUtil.saveUser(mContext, uniqueId);
+                                Intent intent = new Intent(mContext, GcmRegistrationService.class);
+                                startService(intent);
+                                startChatListActivity();
+                            }
+
+                            @Override
+                            public void onError(int i, String s) {
+
+                            }
+                        });
                     }
 
                     @Override
                     public void onError(int errorCode, String errorMsg) {
                         Toast.makeText(mContext, "Failed to link to Moxtra account.", Toast.LENGTH_LONG).show();
-                        Log.e(TAG, "Failed to link to Moxtra account, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
-                        showProgress(false);
+                        Log.e(LOG_TAG,
+                                "Failed to link to Moxtra account, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
                     }
                 });
     }
 
     private void linkWithAccessToken(final String token) {
-        Log.d(TAG, "Start to linkWithAccessToken...");
-        showProgress(true);
+        Log.d(LOG_TAG, "Start to linkWithAccessToken...");
+
         ChatClient.linkWithAccessToken(token, BASE_DOMAIN, new ApiCallback<ChatClientDelegate>() {
+
             @Override
             public void onCompleted(ChatClientDelegate ccd) {
-                Log.i(TAG, "Linked to Moxtra account successfully.");
+                Log.i(LOG_TAG, "Linked to Moxtra account successfully.");
                 Intent intent = new Intent(mContext, GcmRegistrationService.class);
                 startService(intent);
                 startChatListActivity();
@@ -137,29 +143,10 @@ public class LoginActivity extends Activity {
             @Override
             public void onError(int errorCode, String errorMsg) {
                 Toast.makeText(mContext, "Failed to link to Moxtra account.", Toast.LENGTH_LONG).show();
-                Log.e(TAG, "Failed to link to Moxtra account, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
-                showProgress(false);
+                Log.e(LOG_TAG,
+                        "Failed to link to Moxtra account, errorCode=" + errorCode + ", errorMsg=" + errorMsg);
             }
         });
-    }
-
-    /**
-     * Attempts to sign in or register the account specified by the login form.
-     * If there are form errors (missing fields, etc.), the
-     * errors are presented and no actual login attempt is made.
-     */
-    private void attemptLogin() {
-        // Reset errors.
-        mUniqueIdView.setError(null);
-        String uniqueId = mUniqueIdView.getText().toString();
-
-        // Check for a valid unique ID.
-        if (TextUtils.isEmpty(uniqueId)) {
-            mUniqueIdView.setError(getString(R.string.error_field_required));
-            mUniqueIdView.requestFocus();
-        } else {
-            linkWithUniqueID(uniqueId);
-        }
     }
 
     private void showSelectionDialog() {
@@ -186,35 +173,22 @@ public class LoginActivity extends Activity {
     }
 
     /**
-     * Shows the progress UI and hides the login form.
+     * Attempts to sign in or register the account specified by the login form.
+     * If there are form errors (missing fields, etc.),
+     * the errors are presented and no actual login attempt is made.
      */
-    private void showProgress(final boolean show) {
-        mHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
+    public void signIn(View view) {
+        // Reset errors.
+        mUniqueIdView.setError(null);
+        String uniqueId = mUniqueIdView.getText().toString();
 
-                mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-                mLoginFormView.animate().setDuration(shortAnimTime).alpha(
-                        show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-                    }
-                });
-
-                mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-                mProgressView.animate().setDuration(shortAnimTime).alpha(
-                        show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
-                    }
-                });
-            }
-        });
-
+        // Check for a valid unique ID.
+        if (TextUtils.isEmpty(uniqueId)) {
+            mUniqueIdView.setError(getString(R.string.error_field_required));
+            mUniqueIdView.requestFocus();
+        } else {
+            linkWithUniqueID(uniqueId);
+        }
     }
-
 }
 

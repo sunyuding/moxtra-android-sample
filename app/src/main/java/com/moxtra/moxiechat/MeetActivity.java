@@ -79,6 +79,7 @@ public class MeetActivity extends BaseActivity {
             finishInMainThread();
             return;
         }
+        // To start a meeting outside the Chat UI, use the following code snippet:
         mMeetRepo = mChatClientDelegate.createMeetRepo();
 
         setLoading(true);
@@ -101,6 +102,7 @@ public class MeetActivity extends BaseActivity {
         mHandler.post(new Runnable() {
             @Override
             public void run() {
+                // show meet fragment in your activity.
                 Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.meet_frame);
                 if (fragment == null) {
                     fragment = mMeetSessionController.createMeetFragment();
@@ -145,7 +147,8 @@ public class MeetActivity extends BaseActivity {
             finishInMainThread();
             return;
         }
-
+        // Invited users should be able to join a meeting.
+        // Use this code snippet to implement the join meeting functionality.
         mMeetRepo.joinMeet(meet.getID(), new ApiCallback<MeetSession>() {
             @Override
             public void onCompleted(MeetSession meetSession) {
@@ -167,6 +170,7 @@ public class MeetActivity extends BaseActivity {
     private void startMeet(Intent intent) {
         String topic = intent.getStringExtra(KEY_TOPIC);
         final List<User> userList = intent.getParcelableArrayListExtra(KEY_USER_LIST);
+        //Please implement the callback interface to determine if the meeting was started successfully.
         mMeetRepo.startMeetWithTopic(topic, new ApiCallback<MeetSession>() {
             @Override
             public void onCompleted(MeetSession meetSession) {

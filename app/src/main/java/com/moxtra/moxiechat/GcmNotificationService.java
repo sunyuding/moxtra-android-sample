@@ -52,6 +52,8 @@ public class GcmNotificationService extends GcmListenerService {
         Intent intent = new Intent();
         intent.putExtras(bundle);
         if (bundle != null && !bundle.isEmpty()) {
+            // After getting a notification,
+            // call isValidRemoteNotification to preprocess it and check if it is a Moxtra message.
             NotificationManager notificationManager = ChatClient.getClientDelegate().getNotificationManager();
             if (notificationManager.isValidRemoteNotification(intent)) {
                 int type = notificationManager.getValidNotificationType(intent);
@@ -66,6 +68,7 @@ public class GcmNotificationService extends GcmListenerService {
         }
     }
 
+    // If it is a moxtra message, process and send the notification as shown in the code snippet below:
     private void sendNotification(String msg, Uri uri, Intent intent) {
         Intent notificationIntent = new Intent(this, ChatListActivity.class);
         if (intent != null) {
